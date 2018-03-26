@@ -116,6 +116,7 @@ def find_led(r, args):
 
 def print_led(d, p, l, level):
     leds = {
+        RatbagdLed.MODE_TRIGGER: "trigger",
         RatbagdLed.MODE_BREATHING: "breathing",
         RatbagdLed.MODE_CYCLE: "cycle",
         RatbagdLed.MODE_OFF: "off",
@@ -163,10 +164,21 @@ def print_led(d, p, l, level):
                                                                                                                                     l.color[2],
                                                                                                                                     l.effect_duration,
                                                                                                                                     l.brightness))
+    elif l.mode == RatbagdLed.MODE_TRIGGER:
+        print(" " * level + "LED: {} type: {}, depth: {}, mode: {}, color: {:02x}{:02x}{:02x}, duration: {}, brightness: {}".format(l.index,
+                                                                                                                                    types[l.type],
+                                                                                                                                    depths[l.colordepth],
+                                                                                                                                    leds[l.mode],
+                                                                                                                                    l.color[0],
+                                                                                                                                    l.color[1],
+                                                                                                                                    l.color[2],
+                                                                                                                                    l.effect_duration,
+                                                                                                                                    l.brightness))
 
 
 def print_led_caps(d, p, l, level):
     leds = {
+        RatbagdLed.MODE_TRIGGER: "trigger",
         RatbagdLed.MODE_BREATHING: "breathing",
         RatbagdLed.MODE_CYCLE: "cycle",
         RatbagdLed.MODE_OFF: "off",
@@ -327,6 +339,7 @@ def func_led_set(r, args):
         pass
     else:
         leds = {
+            "trigger": RatbagdLed.MODE_TRIGGER,
             "breathing": RatbagdLed.MODE_BREATHING,
             "cycle": RatbagdLed.MODE_CYCLE,
             "off": RatbagdLed.MODE_OFF,
@@ -1126,7 +1139,7 @@ active profile if none is given.""",
                                     name: 'mode',
                                     metavar: 'mode',
                                     help_str: 'The mode to set as current',
-                                    choices: ['on', 'off', 'cycle', 'breathing'],
+                                    choices: ['on', 'off', 'cycle', 'breathing', 'trigger'],
                                 },
                             ],
                         },

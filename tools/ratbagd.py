@@ -903,6 +903,7 @@ class RatbagdLed(_RatbagdDBus):
     MODE_ON = 1
     MODE_CYCLE = 2
     MODE_BREATHING = 3
+    MODE_TRIGGER = 4
 
     COLORDEPTH_MONOCHROME = 400
     COLORDEPTH_RGB_888 = 401
@@ -918,6 +919,8 @@ class RatbagdLed(_RatbagdDBus):
         # Translators: the LED's is pulsating a single color on different
         # brightnesses.
         MODE_BREATHING: N_("Breathing"),
+        # Translators: the LED glows when a certain key combination is triggered
+        MODE_TRIGGER: N_("Trigger"),
     }
 
     def __init__(self, object_path):
@@ -930,16 +933,16 @@ class RatbagdLed(_RatbagdDBus):
 
     @GObject.Property
     def mode(self):
-        """This led's mode, one of MODE_OFF, MODE_ON, MODE_CYCLE and
-        MODE_BREATHING."""
+        """This led's mode, one of MODE_OFF, MODE_ON, MODE_CYCLE,
+        MODE_BREATHING and MODE_TRIGGER."""
         return self._get_dbus_property("Mode")
 
     @mode.setter
     def mode(self, mode):
         """Set the led's mode to the given mode.
 
-        @param mode The new mode, as one of MODE_OFF, MODE_ON, MODE_CYCLE and
-                    MODE_BREATHING.
+        @param mode The new mode, as one of MODE_OFF, MODE_ON, MODE_CYCLE,
+                    MODE_BREATHING and MODE_TRIGGER.
         """
         self._set_dbus_property("Mode", "u", mode)
 

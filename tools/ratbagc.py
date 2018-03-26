@@ -743,6 +743,7 @@ class RatbagdLed(metaclass=MetaRatbag):
     MODE_ON = libratbag.RATBAG_LED_ON
     MODE_CYCLE = libratbag.RATBAG_LED_CYCLE
     MODE_BREATHING = libratbag.RATBAG_LED_BREATHING
+    MODE_TRIGGER = libratbag.RATBAG_LED_TRIGGER
 
     LED_DESCRIPTION = {
         # Translators: the LED is off.
@@ -754,6 +755,8 @@ class RatbagdLed(metaclass=MetaRatbag):
         # Translators: the LED's is pulsating a single color on different
         # brightnesses.
         MODE_BREATHING: N_("Breathing"),
+        # Translators: the LED glows when a certain key combination is triggered
+        MODE_TRIGGER: N_("Trigger"),
     }
 
     def __init__(self, profile, id):
@@ -771,16 +774,16 @@ class RatbagdLed(metaclass=MetaRatbag):
 
     @property
     def mode(self):
-        """This led's mode, one of MODE_OFF, MODE_ON, MODE_CYCLE and
-        MODE_BREATHING."""
+        """This led's mode, one of MODE_OFF, MODE_ON, MODE_CYCLE,
+        MODE_BREATHING and MODE_TRIGGER."""
         return libratbag.ratbag_led_get_mode(self._led)
 
     @mode.setter
     def mode(self, mode):
         """Set the led's mode to the given mode.
 
-        @param mode The new mode, as one of MODE_OFF, MODE_ON, MODE_CYCLE and
-                    MODE_BREATHING.
+        @param mode The new mode, as one of MODE_OFF, MODE_ON, MODE_CYCLE,
+                    MODE_BREATHING and MODE_TRIGGER.
         """
         libratbag.ratbag_led_set_mode(self._led, mode)
 
