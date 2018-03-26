@@ -731,6 +731,9 @@ roccat_read_profile(struct ratbag_profile *profile)
 	}
 
 	ratbag_profile_for_each_resolution(profile, resolution) {
+		if (!resolution->dirty)
+			continue;
+
 		dpi_x = setting_report->xres[resolution->index] * 50;
 		dpi_y = setting_report->yres[resolution->index] * 50;
 		hz = report_rate;

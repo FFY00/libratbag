@@ -1113,6 +1113,9 @@ gskill_update_resolutions(struct ratbag_profile *profile)
 			&report->dpi_levels[report->dpi_num];
 
 		res = ratbag_profile_get_resolution(profile, i);
+		if (!res->dirty)
+			continue;
+
 		if (!res->dpi_x || !res->dpi_y)
 			continue;
 

@@ -1166,6 +1166,9 @@ hidpp20drv_commit(struct ratbag_device *device)
 		drv_data->profiles->profiles[profile->index].enabled = profile->is_enabled;
 
 		ratbag_profile_for_each_resolution(profile, resolution) {
+			if (!resolution->dirty)
+				continue;
+
 			if (resolution->is_active)
 				dpi_index = resolution->index;
 

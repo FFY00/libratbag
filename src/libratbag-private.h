@@ -267,6 +267,7 @@ struct ratbag_resolution {
 
 	bool is_active;
 	bool is_default;
+	bool dirty;			/**< profile changed since last commit */
 	uint32_t capabilities;
 };
 

@@ -549,6 +549,9 @@ logitech_g300_write_profile(struct ratbag_profile *profile)
 	report = &pdata->report;
 
 	ratbag_profile_for_each_resolution(profile, resolution) {
+		if (!resolution->dirty)
+			continue;
+
 		struct logitech_g300_resolution *res =
 			&report->dpi_levels[resolution->index];
 
