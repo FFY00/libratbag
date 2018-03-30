@@ -574,9 +574,6 @@ hidpp10drv_commit(struct ratbag_device *device)
 
 		/* Update the current resolution in case it changed */
 		if (active_resolution) {
-			if (!resolution->dirty)
-				continue;
-
 			rc = hidpp10_set_current_resolution(dev,
 						       active_resolution->dpi_x,
 						       active_resolution->dpi_y);
