@@ -51,10 +51,10 @@ list_init(struct list *list)
 void
 list_insert(struct list *list, struct list *elm)
 {
-	elm->prev = list;
-	elm->next = list->next;
-	list->next = elm;
-	elm->next->prev = elm;
+	elm->next = list;
+	elm->prev = list->prev;
+	list->prev = elm;
+	elm->prev->next = elm;
 }
 
 void
