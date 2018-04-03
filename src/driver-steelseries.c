@@ -510,101 +510,92 @@ steelseries_write_led_v2(struct ratbag_led *led)
 	uint8_t buf[STEELSERIES_REPORT_SIZE] = {0};
 	int ret;
 
-	struct steelseries_cycle *cycle;
-	struct steelseries_point *point1;
-	struct steelseries_point *point2;
-	struct steelseries_point *point3;
-	struct steelseries_point *point4;
+	struct steelseries_cycle cycle;
+	struct steelseries_point point1;
+	struct steelseries_point point2;
+	struct steelseries_point point3;
+	struct steelseries_point point4;
 
-	cycle = zalloc(sizeof(*cycle));
-	create_cycle(cycle);
-	cycle->led_id = led->index;
+	create_cycle(&cycle);
+	cycle.led_id = led->index;
 
-	point1 = zalloc(sizeof(*point1));
-	point2 = zalloc(sizeof(*point2));
-	point3 = zalloc(sizeof(*point3));
-	point4 = zalloc(sizeof(*point4));
-	point1->color = zalloc(sizeof(*point1->color));
-	point2->color = zalloc(sizeof(*point2->color));
-	point3->color = zalloc(sizeof(*point3->color));
-	point4->color = zalloc(sizeof(*point4->color));
+	point1.color = zalloc(sizeof(*point1.color));
+	point2.color = zalloc(sizeof(*point2.color));
+	point3.color = zalloc(sizeof(*point3.color));
+	point4.color = zalloc(sizeof(*point4.color));
 	
 	switch(led->mode) {
 	case RATBAG_LED_OFF:
-		point1->color->red = 0x00;
-		point1->color->green = 0x00;
-		point1->color->blue = 0x00;
-		point1->pos = 0x00;
+		point1.color->red = 0x00;
+		point1.color->green = 0x00;
+		point1.color->blue = 0x00;
+		point1.pos = 0x00;
 
-		list_insert(&cycle->points, &point1->link);
+		list_insert(&cycle.points, &point1.link);
 		break;
 	case RATBAG_LED_ON:
-		point1->color = &led->color;
+		point1.color = &led->color;
 
-		list_insert(&cycle->points, &point1->link);
+		list_insert(&cycle.points, &point1.link);
 		break;
 	case RATBAG_LED_CYCLE:
-		point1->color->red = 0xFF;
-		point1->color->green = 0x00;
-		point1->color->blue = 0x00;
-		point1->pos = 0x00;
+		point1.color->red = 0xFF;
+		point1.color->green = 0x00;
+		point1.color->blue = 0x00;
+		point1.pos = 0x00;
 
-		point2->color->red = 0x00;
-		point2->color->green = 0xFF;
-		point2->color->blue = 0x00;
-		point2->pos = 0x54;
+		point2.color->red = 0x00;
+		point2.color->green = 0xFF;
+		point2.color->blue = 0x00;
+		point2.pos = 0x54;
 
-		point3->color->red = 0x00;
-		point3->color->green = 0x00;
-		point3->color->blue = 0xFF;
-		point3->pos = 0x54;
+		point3.color->red = 0x00;
+		point3.color->green = 0x00;
+		point3.color->blue = 0xFF;
+		point3.pos = 0x54;
 
-		point4->color->red = 0xFF;
-		point4->color->green = 0x00;
-		point4->color->blue = 0x00;
-		point4->pos = 0x56;
+		point4.color->red = 0xFF;
+		point4.color->green = 0x00;
+		point4.color->blue = 0x00;
+		point4.pos = 0x56;
 
-		list_insert(&cycle->points, &point1->link);
-		list_insert(&cycle->points, &point2->link);
-		list_insert(&cycle->points, &point3->link);
-		list_insert(&cycle->points, &point4->link);
+		list_insert(&cycle.points, &point1.link);
+		list_insert(&cycle.points, &point2.link);
+		list_insert(&cycle.points, &point3.link);
+		list_insert(&cycle.points, &point4.link);
 
-		cycle->duration = led->ms;
+		cycle.duration = led->ms;
 		break;
 	case RATBAG_LED_BREATHING:
-		point1->color->red = 0x00;
-		point1->color->green = 0x00;
-		point1->color->blue = 0x00;
-		point1->pos = 0x00;
+		point1.color->red = 0x00;
+		point1.color->green = 0x00;
+		point1.color->blue = 0x00;
+		point1.pos = 0x00;
 
-		point2->color = &led->color;
-		point2->pos = 0x7F;
+		point2.color = &led->color;
+		point2.pos = 0x7F;
 
-		point3->color->red = 0x00;
-		point3->color->green = 0x00;
-		point3->color->blue = 0x00;
-		point3->pos = 0x7F;
+		point3.color->red = 0x00;
+		point3.color->green = 0x00;
+		point3.color->blue = 0x00;
+		point3.pos = 0x7F;
 		
-		list_insert(&cycle->points, &point1->link);
-		list_insert(&cycle->points, &point2->link);
-		list_insert(&cycle->points, &point3->link);
+		list_insert(&cycle.points, &point1.link);
+		list_insert(&cycle.points, &point2.link);
+		list_insert(&cycle.points, &point3.link);
 
-		cycle->duration = led->ms;
+		cycle.duration = led->ms;
 		break;
 	default:
 		return -EINVAL;
 	}
 
-	construct_cycle_buffer(cycle, buf);
+	construct_cycle_buffer(&cycle, buf);
 
-	mfree(point1->color);
-	mfree(point2->color);
-	mfree(point3->color);
-	mfree(point4->color);
-	mfree(point1);
-	mfree(point2);
-	mfree(point3);
-	mfree(point4);
+	mfree(point1.color);
+	mfree(point2.color);
+	mfree(point3.color);
+	mfree(point4.color);
 
 	msleep(10);
 	ret = ratbag_hidraw_output_report(device, buf, sizeof(buf));
