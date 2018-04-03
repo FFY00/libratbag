@@ -597,6 +597,15 @@ steelseries_write_led_v2(struct ratbag_led *led)
 
 	construct_cycle_buffer(cycle, buf);
 
+	mfree(point1->color);
+	mfree(point2->color);
+	mfree(point3->color);
+	mfree(point4->color);
+	mfree(point1);
+	mfree(point2);
+	mfree(point3);
+	mfree(point4);
+
 	msleep(10);
 	ret = ratbag_hidraw_output_report(device, buf, sizeof(buf));
 	if (ret < 0)
