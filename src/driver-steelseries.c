@@ -65,6 +65,74 @@
 #define STEELSERIES_BUTTON_KBD			0x51
 #define STEELSERIES_BUTTON_CONSUMER		0x61
 
+struct steelseries_point {
+	struct list link;
+
+	struct ratbag_color *color;
+	uint8_t pos;
+};
+
+struct steelseries_cycle {
+	uint8_t led_id; 			/* led id */
+	uint16_t duration;			/* cycle duration */
+	bool repeat;				/* if the cycle restarts automatically */
+	uint8_t trigger_buttons;	/* trigger button combination */
+	struct list points;			/* colors in the cycle */
+};
+
+static void
+create_cycle(struct steelseries_cycle *cycle)
+{
+	cycle->led_id = 0x00;
+	cycle->duration = 5000;
+	cycle->repeat = true;
+	cycle->trigger_buttons = 0x00;
+
+	list_init(&cycle->points);
+}
+
+static void
+construct_cycle_buffer(struct steelseries_cycle *cycle, uint8_t *buf)
+{
+	struct steelseries_point *point;
+	uint16_t duration, min_duration;
+	uint8_t point_count = 0;
+
+	buf[0] = STEELSERIES_ID_LED;
+	buf[2] = cycle->led_id;
+
+	if (!cycle->repeat)
+		buf[19] = 0x01;
+
+	buf[23] = cycle->trigger_buttons;
+
+	list_for_each(point, &cycle->points, link) {
+		if(point_count == 0){
+			buf[28] = point->color->red;
+			buf[29] = point->color->green;
+			buf[30] = point->color->blue;
+		}
+
+		buf[31 + point_count*4] = point->color->red;
+		buf[32 + point_count*4] = point->color->green;
+		buf[33 + point_count*4] = point->color->blue;
+		buf[34 + point_count*4] = point->pos;
+
+		point_count++;
+	}
+
+	buf[27] = point_count;
+
+	/* this seems to be the minimum allowed */
+	min_duration = buf[27] * 330;
+	duration = cycle->duration;
+	if (duration < min_duration)
+		duration = min_duration;
+
+	hidpp_set_unaligned_le_u16(&buf[3], duration);
+}
+
+
 static int
 steelseries_test_hidraw(struct ratbag_device *device)
 {
@@ -440,98 +508,94 @@ steelseries_write_led_v2(struct ratbag_led *led)
 {
 	struct ratbag_device *device = led->profile->device;
 	uint8_t buf[STEELSERIES_REPORT_SIZE] = {0};
-	uint16_t duration, min_duration;
 	int ret;
 
-	buf[0] = STEELSERIES_ID_LED;
-	buf[2] = led->index;
+	struct steelseries_cycle *cycle;
+	struct steelseries_point *point1;
+	struct steelseries_point *point2;
+	struct steelseries_point *point3;
+	struct steelseries_point *point4;
 
-	/* not sure if these two are needed */
-	buf[15] = 0x01;
-	buf[17] = 0x01;
+	cycle = zalloc(sizeof(*cycle));
+	create_cycle(cycle);
+	cycle->led_id = led->index;
 
+	point1 = zalloc(sizeof(*point1));
+	point2 = zalloc(sizeof(*point2));
+	point3 = zalloc(sizeof(*point3));
+	point4 = zalloc(sizeof(*point4));
+	point1->color = zalloc(sizeof(*point1->color));
+	point2->color = zalloc(sizeof(*point2->color));
+	point3->color = zalloc(sizeof(*point3->color));
+	point4->color = zalloc(sizeof(*point4->color));
+	
 	switch(led->mode) {
 	case RATBAG_LED_OFF:
-		buf[19] = 0x01;
-		buf[27] = 0x01;
-		buf[28] = buf[31] = 0x00;
-		buf[29] = buf[32] = 0x00;
-		buf[30] = buf[33] = 0x00;
-		/* not sure why the duration is set for the steady color or why
-		   it is different for the two LEDs */
-		duration = led->index == 0 ? 10000 : 5000; /* 0x1027 or 0x8813 */
+		point1->color->red = 0x00;
+		point1->color->green = 0x00;
+		point1->color->blue = 0x00;
+		point1->pos = 0x00;
+
+		list_insert(&cycle->points, &point1->link);
 		break;
 	case RATBAG_LED_ON:
-		buf[19] = 0x01;
-		buf[27] = 0x01;
-		buf[28] = buf[31] = led->color.red;
-		buf[29] = buf[32] = led->color.green;
-		buf[30] = buf[33] = led->color.blue;
+		point1->color = &led->color;
 
-		/* not sure why the duration is set for the steady color or why
-		   it is different for the two LEDs */
-		duration = led->index == 0 ? 10000 : 5000; /* 0x1027 or 0x8813 */
+		list_insert(&cycle->points, &point1->link);
 		break;
 	case RATBAG_LED_CYCLE:
-		buf[27] = 0x04; /* number of steps in cycle */
+		point1->color->red = 0xFF;
+		point1->color->green = 0x00;
+		point1->color->blue = 0x00;
+		point1->pos = 0x00;
 
-		/* start color */
-		buf[28] = buf[31] = 0xFF;
-		buf[29] = buf[32] = 0x00;
-		buf[30] = buf[33] = 0x00;
+		point2->color->red = 0x00;
+		point2->color->green = 0xFF;
+		point2->color->blue = 0x00;
+		point2->pos = 0x54;
 
-		/* Cycle to green */
-		buf[35] = 0x00;
-		buf[36] = 0xFF;
-		buf[37] = 0x00;
-		buf[38] = 0x54; /* normalized time share of animation */
+		point3->color->red = 0x00;
+		point3->color->green = 0x00;
+		point3->color->blue = 0xFF;
+		point3->pos = 0x54;
 
-		/* Cycle to blue */
-		buf[39] = 0x00;
-		buf[40] = 0x00;
-		buf[41] = 0xFF;
-		buf[42] = 0x54; /* normalized time share of animation */
+		point4->color->red = 0xFF;
+		point4->color->green = 0x00;
+		point4->color->blue = 0x00;
+		point4->pos = 0x56;
 
-		/* Cycle to red */
-		buf[43] = 0xFF;
-		buf[44] = 0x00;
-		buf[45] = 0x00;
-		buf[46] = 0x56; /* normalized time share of animation */
+		list_insert(&cycle->points, &point1->link);
+		list_insert(&cycle->points, &point2->link);
+		list_insert(&cycle->points, &point3->link);
+		list_insert(&cycle->points, &point4->link);
 
-		duration = led->ms;
+		cycle->duration = led->ms;
 		break;
 	case RATBAG_LED_BREATHING:
-		buf[27] = 0x03; /* number of steps in cycle */
+		point1->color->red = 0x00;
+		point1->color->green = 0x00;
+		point1->color->blue = 0x00;
+		point1->pos = 0x00;
 
-		/* start color */
-		buf[28] = buf[31] = led->color.red;
-		buf[29] = buf[32] = led->color.green;
-		buf[30] = buf[33] = led->color.blue;
+		point2->color = &led->color;
+		point2->pos = 0x7F;
 
-		/* Cycle to black */
-		buf[35] = 0x00;
-		buf[36] = 0x00;
-		buf[37] = 0x00;
-		buf[38] = 0x7F; /* normalized time share of animation */
+		point3->color->red = 0x00;
+		point3->color->green = 0x00;
+		point3->color->blue = 0x00;
+		point3->pos = 0x7F;
+		
+		list_insert(&cycle->points, &point1->link);
+		list_insert(&cycle->points, &point2->link);
+		list_insert(&cycle->points, &point3->link);
 
-		/* Cycle to selected color */
-		buf[39] = led->color.red;
-		buf[40] = led->color.green;
-		buf[41] = led->color.blue;
-		buf[42] = 0x7F; /* normalized time share of animation */
-
-		duration = led->ms;
+		cycle->duration = led->ms;
 		break;
 	default:
 		return -EINVAL;
 	}
 
-	/* this seems to be the minimum allowed */
-	min_duration = buf[27] * 330;
-	if (duration < min_duration)
-		duration = min_duration;
-
-	hidpp_set_unaligned_le_u16(&buf[3], duration);
+	construct_cycle_buffer(cycle, buf);
 
 	msleep(10);
 	ret = ratbag_hidraw_output_report(device, buf, sizeof(buf));
