@@ -306,6 +306,63 @@ hidpp_read_response(struct hidpp_device *dev, uint8_t *buf, size_t size)
 	return rc >= 0 ? rc : -errno;
 }
 
+int
+hidpp_test_report(struct hidpp_device *dev, uint8_t device_index, uint8_t report_type, uint report_size)
+{
+	if (report_size < 4)
+		return -EINVAL;
+
+	if (report_size > LONG_MESSAGE_LENGTH) /* this should be the longest, at least for now */
+	{
+		hidpp_log_error(dev, "We are testing a report type with size bigger than what is supported! Please report this to the libratbag developers.\n");
+		return -EINVAL;
+	}
+
+	int ret;
+	_cleanup_(freep) uint8_t *buf = zalloc(LONG_MESSAGE_LENGTH);
+
+	/* we are sending the HID++ version identification routine, please refeer to the docs for more information */
+	buf[0] = report_type;
+	buf[1] = device_index;
+	buf[2] = 0x00; /* RegisterAccessID / IRoot */
+	buf[3] = 0x10; /* ? / GetProtocolVersion() */
+
+	ret = hidpp_write_command(dev, buf, report_size);
+	if (ret)
+		return 0;
+
+	ret = hidpp_read_response(dev, buf, LONG_MESSAGE_LENGTH);
+
+	/* wait and retry if the USB timed out */
+	if (ret == -ETIMEDOUT) {
+		msleep(10);
+		ret = hidpp_read_response(dev, buf, LONG_MESSAGE_LENGTH);
+	}
+
+	/* if it didn't reply by now we assume the device does not support this report type */
+	if (ret == -ETIMEDOUT)
+		return 0;
+
+	return 1;
+}
+
+void
+hidpp_get_supported_report_types(struct hidpp_device *dev, uint8_t device_index)
+{
+	dev->supported_report_types &= (0xff << 2); /* reset the bits we are gonna check */
+
+	if (hidpp_test_report(dev, device_index, REPORT_ID_SHORT, SHORT_MESSAGE_LENGTH))
+		dev->supported_report_types |= HIDPP_REPORT_SHORT;
+
+	if (hidpp_test_report(dev, device_index, REPORT_ID_LONG, LONG_MESSAGE_LENGTH))
+		dev->supported_report_types |= HIDPP_REPORT_LONG;
+
+	if (dev->supported_report_types & HIDPP_REPORT_SHORT)
+		hidpp_log_debug(dev, "hidpp: device supports short reports.\n");
+	if (dev->supported_report_types & HIDPP_REPORT_LONG)
+		hidpp_log_debug(dev, "hidpp: device supports long reports.\n");
+}
+
 void
 hidpp_log(struct hidpp_device *dev,
 	  enum hidpp_log_priority priority,
@@ -363,6 +420,7 @@ hidpp_device_init(struct hidpp_device *dev, int fd)
 {
 	dev->hidraw_fd = fd;
 	hidpp_device_set_log_handler(dev, simple_log, HIDPP_LOG_PRIORITY_INFO, NULL);
+	dev->supported_report_types = 0;
 }
 
 void

@@ -100,7 +100,11 @@ struct hidpp_device {
 	void *userdata;
 	hidpp_log_handler log_handler;
 	enum hidpp_log_priority log_priority;
+	uint8_t supported_report_types;
 };
+
+#define HIDPP_REPORT_SHORT	(1 << 0)
+#define HIDPP_REPORT_LONG	(1 << 1)
 
 void
 hidpp_device_init(struct hidpp_device *dev, int fd);
@@ -139,6 +143,12 @@ hidpp_write_command(struct hidpp_device *dev, uint8_t *cmd, int size);
 
 int
 hidpp_read_response(struct hidpp_device *dev, uint8_t *buf, size_t size);
+
+int
+hidpp_test_report(struct hidpp_device *dev, uint8_t device_index, uint8_t report_type, uint report_size);
+
+void
+hidpp_get_supported_report_types(struct hidpp_device *dev, uint8_t device_index);
 
 void
 hidpp_log(struct hidpp_device *dev,
