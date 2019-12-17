@@ -95,8 +95,16 @@ typedef void (*hidpp_log_handler)(void *userdata,
 				  const char *format, va_list args)
 	__attribute__ ((format (printf, 3, 0)));
 
+struct hidpp_hid_report {
+	unsigned int report_id;
+	unsigned int usage_page;
+	unsigned int usage;
+};
+
 struct hidpp_device {
 	int hidraw_fd;
+	struct hidpp_hid_report *hid_reports;
+	unsigned num_hid_reports;
 	void *userdata;
 	hidpp_log_handler log_handler;
 	enum hidpp_log_priority log_priority;
@@ -145,7 +153,7 @@ int
 hidpp_read_response(struct hidpp_device *dev, uint8_t *buf, size_t size);
 
 int
-hidpp_test_report(struct hidpp_device *dev, uint8_t device_index, uint8_t report_type, uint report_size);
+hidpp_test_report(struct hidpp_device *dev, uint8_t report_type);
 
 void
 hidpp_get_supported_report_types(struct hidpp_device *dev, uint8_t device_index);

@@ -306,26 +306,29 @@ hidpp_read_response(struct hidpp_device *dev, uint8_t *buf, size_t size)
 	return rc >= 0 ? rc : -errno;
 }
 
+/*
 int
 hidpp_test_report(struct hidpp_device *dev, uint8_t device_index, uint8_t report_type, uint report_size)
 {
 	if (report_size < 4)
 		return -EINVAL;
 
-	if (report_size > LONG_MESSAGE_LENGTH) /* this should be the longest, at least for now */
+	if (report_size > LONG_MESSAGE_LENGTH) /* this should be the longest, at least for now /
 	{
 		hidpp_log_error(dev, "We are testing a report type with size bigger than what is supported! Please report this to the libratbag developers.\n");
 		return -EINVAL;
 	}
 
+	hidpp_log_debug(dev, "");
+
 	int ret;
 	_cleanup_(freep) uint8_t *buf = zalloc(LONG_MESSAGE_LENGTH);
 
-	/* we are sending the HID++ version identification routine, please refeer to the docs for more information */
+	/* we are sending the HID++ version identification routine, please refeer to the docs for more information /
 	buf[0] = report_type;
 	buf[1] = device_index;
-	buf[2] = 0x00; /* RegisterAccessID / IRoot */
-	buf[3] = 0x10; /* ? / GetProtocolVersion() */
+	buf[2] = 0x00; /* RegisterAccessID / IRoot /
+	buf[3] = 0x10; /* ? / GetProtocolVersion() /
 
 	ret = hidpp_write_command(dev, buf, report_size);
 	if (ret)
@@ -333,17 +336,34 @@ hidpp_test_report(struct hidpp_device *dev, uint8_t device_index, uint8_t report
 
 	ret = hidpp_read_response(dev, buf, LONG_MESSAGE_LENGTH);
 
-	/* wait and retry if the USB timed out */
+	/* wait and retry if the USB timed out /
 	if (ret == -ETIMEDOUT) {
 		msleep(10);
 		ret = hidpp_read_response(dev, buf, LONG_MESSAGE_LENGTH);
 	}
 
-	/* if it didn't reply by now we assume the device does not support this report type */
+	/* if it didn't reply by now we assume the device does not support this report type /
 	if (ret == -ETIMEDOUT)
 		return 0;
 
 	return 1;
+}
+*/
+
+int
+hidpp_test_report(struct hidpp_device *dev, uint8_t report_type)
+{
+	if (!dev->hid_reports)
+	{
+		hidpp_log_error(dev, "hidpp: we don't have information about the hid reports, marking 0x%02x as unsupported\n", report_type);
+		return 0;
+	}
+
+	for (unsigned i = 0; i < dev->num_hid_reports; i++)
+		hidpp_log_debug(dev, "hid report: id = 0x%02x, usage_page = 0x%02x, usage = 0x%02x\n", dev->hid_reports[i].report_id,
+												       dev->hid_reports[i].usage_page,
+												       dev->hid_reports[i].usage);
+	return 0;
 }
 
 void
@@ -351,10 +371,10 @@ hidpp_get_supported_report_types(struct hidpp_device *dev, uint8_t device_index)
 {
 	dev->supported_report_types &= (0xff << 2); /* reset the bits we are gonna check */
 
-	if (hidpp_test_report(dev, device_index, REPORT_ID_SHORT, SHORT_MESSAGE_LENGTH))
+	if (hidpp_test_report(dev, REPORT_ID_SHORT))
 		dev->supported_report_types |= HIDPP_REPORT_SHORT;
 
-	if (hidpp_test_report(dev, device_index, REPORT_ID_LONG, LONG_MESSAGE_LENGTH))
+	if (hidpp_test_report(dev, REPORT_ID_LONG))
 		dev->supported_report_types |= HIDPP_REPORT_LONG;
 
 	if (dev->supported_report_types & HIDPP_REPORT_SHORT)
@@ -419,6 +439,8 @@ void
 hidpp_device_init(struct hidpp_device *dev, int fd)
 {
 	dev->hidraw_fd = fd;
+	dev->hid_reports = NULL;
+	dev->num_hid_reports = 0;
 	hidpp_device_set_log_handler(dev, simple_log, HIDPP_LOG_PRIORITY_INFO, NULL);
 	dev->supported_report_types = 0;
 }
